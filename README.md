@@ -131,3 +131,15 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 When the frontend is hosted separately, set `CORS_ORIGINS` (or `CORS_ORIGIN_REGEX`) to its origin.
+
+## Docker
+
+```bash
+docker build -t sams .
+docker run -p 8000:8000 -e SECRET_KEY=$(openssl rand -hex 32) -e SEED_DEMO_DATA=true sams
+# or, with PostgreSQL:
+SECRET_KEY=$(openssl rand -hex 32) docker compose up --build
+```
+
+The image builds the SPA and serves it plus the API on `$PORT` (default 8000), so it runs as-is on
+Render, Railway, Fly.io or any container host.

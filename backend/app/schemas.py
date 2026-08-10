@@ -13,16 +13,13 @@ class ORMModel(BaseModel):
 
 # --- auth -------------------------------------------------------------------
 class Token(BaseModel):
+    """Short-lived access token; the refresh token travels in an HttpOnly cookie."""
+
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"
     role: Role
     user_id: int
     full_name: str
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
 
 
 class PasswordChange(BaseModel):

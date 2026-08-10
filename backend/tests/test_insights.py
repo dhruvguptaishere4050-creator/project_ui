@@ -54,6 +54,11 @@ def test_insight_generation_falls_back_to_rules(client: TestClient, db_session) 
     ).json()
     assert len(history) == 1
 
+    invalid = client.get(
+        f"/api/insights/students/{student_id}/history?limit=-1", headers=headers
+    )
+    assert invalid.status_code == 422
+
 
 def test_at_risk_listing_and_class_analytics(client: TestClient, db_session) -> None:
     create_admin(db_session)

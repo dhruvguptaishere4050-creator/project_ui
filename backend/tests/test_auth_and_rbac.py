@@ -104,10 +104,39 @@ def test_refresh_token_flow(client: TestClient, db_session) -> None:
     create_admin(db_session)
     login = client.post(
         "/api/auth/login", data={"username": "admin@test.edu", "password": PASSWORD}
-    ).json()
-    response = client.post("/api/auth/refresh", json={"refresh_token": login["refresh_token"]})
+    )
+    # The refresh token is only ever a cookie, never part of the JSON payload.
+    assert "refresh_token" not in login.json()
+    assert client.cookies.get("sams_refresh")
+
+    response = client.post("/api/auth/refresh")
     assert response.status_code == 200
     assert response.json()["access_token"]
+
+    client.post("/api/auth/logout")
+    assert client.post("/api/auth/refresh").status_code == 401
+
+
+def test_password_change_revokes_existing_tokens(client: TestClient, db_session) -> None:
+    create_admin(db_session)
+    login = client.post(
+        "/api/auth/login", data={"username": "admin@test.edu", "password": PASSWORD}
+    )
+    refresh_cookie = client.cookies["sams_refresh"]
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    changed = client.post(
+        "/api/auth/change-password",
+        json={"current_password": PASSWORD, "new_password": "NewPassword123!"},
+        headers=headers,
+    )
+    assert changed.status_code == 204
+
+    assert client.get("/api/auth/me", headers=headers).status_code == 401
+    client.cookies.set("sams_refresh", refresh_cookie)
+    assert client.post("/api/auth/refresh").status_code == 401
+    client.cookies.clear()
+    assert auth_headers(client, "admin@test.edu", "NewPassword123!")
 
 
 def test_access_token_cannot_be_used_as_refresh_token(client: TestClient, db_session) -> None:
@@ -115,5 +144,6 @@ def test_access_token_cannot_be_used_as_refresh_token(client: TestClient, db_ses
     login = client.post(
         "/api/auth/login", data={"username": "admin@test.edu", "password": PASSWORD}
     ).json()
-    response = client.post("/api/auth/refresh", json={"refresh_token": login["access_token"]})
+    client.cookies.set("sams_refresh", login["access_token"])
+    response = client.post("/api/auth/refresh")
     assert response.status_code == 401

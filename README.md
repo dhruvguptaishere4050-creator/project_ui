@@ -63,6 +63,9 @@ uvicorn app.main:app --reload --port 8000
 
 API docs: http://localhost:8000/docs
 
+On Windows PowerShell the equivalents are `python -m venv .venv`, `.venv\Scripts\pip`,
+`$env:SEED_DEMO_DATA="true"`, and `.venv\Scripts\python -m uvicorn app.main:app --port 8000`.
+
 ### Frontend
 
 ```bash
@@ -115,6 +118,7 @@ cd frontend && npm run lint && npm run build
 ```bash
 docker run -d --name sams-db -e POSTGRES_USER=sams -e POSTGRES_PASSWORD=sams \
   -e POSTGRES_DB=sams -p 5432:5432 postgres:16
+pip install -r backend/requirements-postgres.txt   # psycopg2 is not in the base requirements
 # backend/.env
 DATABASE_URL=postgresql+psycopg2://sams:sams@localhost:5432/sams
 ```

@@ -10,8 +10,10 @@ RUN npm run build
 FROM python:3.12-slim
 WORKDIR /srv
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
-COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# The image installs the PostgreSQL driver too, so the same image works with
+# either DATABASE_URL backend.
+COPY backend/requirements.txt backend/requirements-postgres.txt ./
+RUN pip install --no-cache-dir -r requirements-postgres.txt
 COPY backend/app ./app
 COPY --from=frontend /app/dist ./static
 RUN mkdir -p /srv/data

@@ -1,5 +1,6 @@
 import logging
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,6 +29,10 @@ class Settings(BaseSettings):
     # from the same origin as the API.
     static_dir: str | None = None
 
+    # Set when the SPA is hosted on a different site than the API: the refresh
+    # cookie then needs SameSite=None, which browsers only accept over HTTPS.
+    cross_site_frontend: bool = False
+
     # When true the demo dataset is created on startup if the database is empty.
     # Intended for demo/staging deployments only.
     seed_demo_data: bool = False
@@ -50,6 +55,14 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.strip().lower() in {"production", "prod"}
+
+    @property
+    def refresh_cookie_samesite(self) -> Literal["lax", "none"]:
+        return "none" if self.cross_site_frontend else "lax"
+
+    @property
+    def refresh_cookie_secure(self) -> bool:
+        return self.is_production or self.cross_site_frontend
 
     def validate_for_runtime(self) -> None:
         """Refuses to boot a production deployment with the publicly known dev key."""

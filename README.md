@@ -35,7 +35,8 @@ UI never decides who may read what.
 **Security**
 
 - Short-lived JWT access tokens held in memory; the refresh token is an HttpOnly, SameSite cookie.
-- Changing a password bumps a token version, immediately invalidating every issued token.
+- Changing a password or signing out bumps a token version, immediately invalidating every issued
+  token for that account.
 - `ENVIRONMENT=production` refuses to boot without a real `SECRET_KEY`.
 - bcrypt password hashing, typed token validation.
 - Server-enforced role checks, per-record ownership checks, and login/password-change audit logs.
@@ -96,7 +97,7 @@ cd frontend && npm run lint && npm run build
 | --- | --- | --- |
 | POST | `/api/auth/login` | OAuth2 password login; returns an access token and sets the refresh cookie |
 | POST | `/api/auth/refresh` | Mint a new access token from the refresh cookie |
-| POST | `/api/auth/logout` | Clear the refresh cookie |
+| POST | `/api/auth/logout` | Clear the refresh cookie and revoke outstanding tokens |
 | GET | `/api/auth/me` | Current user |
 | POST | `/api/classes`, `/api/subjects`, `/api/teachers`, `/api/students`, `/api/parents` | Admin provisioning |
 | GET | `/api/students` | Scoped student list (admin: all, teacher: own classes, parent: children, student: self) |
@@ -135,7 +136,9 @@ SECRET_KEY=<random-32-bytes>
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-When the frontend is hosted separately, set `CORS_ORIGINS` (or `CORS_ORIGIN_REGEX`) to its origin.
+When the frontend is hosted separately, set `CORS_ORIGINS` (or `CORS_ORIGIN_REGEX`) to its origin and
+`CROSS_SITE_FRONTEND=true`, which switches the refresh cookie to `SameSite=None; Secure` so browsers
+still send it on the cross-site refresh call. That combination requires HTTPS on both origins.
 
 ## Docker
 

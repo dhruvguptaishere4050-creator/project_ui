@@ -113,7 +113,12 @@ def test_refresh_token_flow(client: TestClient, db_session) -> None:
     assert response.status_code == 200
     assert response.json()["access_token"]
 
+    refresh_cookie = client.cookies["sams_refresh"]
     client.post("/api/auth/logout")
+    assert client.post("/api/auth/refresh").status_code == 401
+
+    # A copy of the pre-logout cookie cannot be replayed either.
+    client.cookies.set("sams_refresh", refresh_cookie)
     assert client.post("/api/auth/refresh").status_code == 401
 
 

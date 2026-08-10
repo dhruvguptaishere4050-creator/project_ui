@@ -115,3 +115,19 @@ DATABASE_URL=postgresql+psycopg2://sams:sams@localhost:5432/sams
 ```
 
 Tables are created on startup; introduce Alembic before running this in production.
+
+## Single-origin deployment
+
+The API can serve the built SPA so the whole system runs behind one port:
+
+```bash
+cd frontend && VITE_API_BASE_URL= npm run build
+cd ../backend
+# backend/.env
+STATIC_DIR=../frontend/dist
+SEED_DEMO_DATA=true          # demo data only; leave false in production
+SECRET_KEY=<random-32-bytes>
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+When the frontend is hosted separately, set `CORS_ORIGINS` (or `CORS_ORIGIN_REGEX`) to its origin.

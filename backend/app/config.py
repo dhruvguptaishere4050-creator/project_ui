@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Optional regex allow-list, e.g. r"https://.*\.example\.com" for hosted frontends.
     cors_origin_regex: str | None = None
 
+    # Directory containing a built frontend bundle. When set, the SPA is served
+    # from the same origin as the API.
+    static_dir: str | None = None
+
     # When true the demo dataset is created on startup if the database is empty.
     # Intended for demo/staging deployments only.
     seed_demo_data: bool = False

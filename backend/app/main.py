@@ -1,10 +1,12 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.responses import Response
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse, Response
 
 from app.config import get_settings
 from app.database import Base, SessionLocal, engine
@@ -64,3 +66,15 @@ app.include_router(auth.router)
 app.include_router(people.router)
 app.include_router(academics.router)
 app.include_router(insights.router)
+
+if settings.static_dir and Path(settings.static_dir).is_dir():
+    static_root = Path(settings.static_dir)
+
+    app.mount("/assets", StaticFiles(directory=static_root / "assets"), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    def spa(full_path: str) -> FileResponse:
+        candidate = static_root / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(static_root / "index.html")

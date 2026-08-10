@@ -143,3 +143,14 @@ SECRET_KEY=$(openssl rand -hex 32) docker compose up --build
 
 The image builds the SPA and serves it plus the API on `$PORT` (default 8000), so it runs as-is on
 Render, Railway, Fly.io or any container host.
+
+### Render
+
+`render.yaml` is a ready-to-use blueprint: in the Render dashboard choose **New > Blueprint**, point
+it at this repository and deploy. It provisions a managed PostgreSQL instance, generates
+`SECRET_KEY`, and health-checks `/api/health`. Set `SEED_DEMO_DATA=false` once you have real data.
+
+### Railway / Fly.io
+
+Both detect the root `Dockerfile`. Set `SECRET_KEY` (and `DATABASE_URL` when using a managed
+database); `postgres://` URLs are normalised automatically.

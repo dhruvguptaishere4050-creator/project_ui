@@ -1,0 +1,41 @@
+[project]
+name = "sams-backend"
+version = "1.0.0"
+description = "Student Academic Management System API"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy==2.0.36",
+    "pydantic==2.10.4",
+    "pydantic-settings==2.7.0",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "bcrypt==4.0.1",
+    "python-multipart==0.0.20",
+    "psycopg2-binary==2.9.10",
+    "httpx==0.28.1",
+    "email-validator==2.2.0",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["app", "app.ai", "app.routers"]
+py-modules = ["main"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
 
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # Optional regex allow-list, e.g. r"https://.*\.example\.com" for hosted frontends.
+    cors_origin_regex: str | None = None
+
+    # When true the demo dataset is created on startup if the database is empty.
+    # Intended for demo/staging deployments only.
+    seed_demo_data: bool = False
 
     # Optional LLM configuration. When unset the system falls back to the
     # deterministic rule-based insight generator.

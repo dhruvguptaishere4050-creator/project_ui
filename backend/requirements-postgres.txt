@@ -1,0 +1,4 @@
+-r requirements.txt
+# Only needed when DATABASE_URL points at PostgreSQL; no wheels exist for some
+# Python versions on Windows, so it stays out of the base requirements.
+psycopg2-binary==2.9.10

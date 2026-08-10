@@ -66,6 +66,13 @@ def test_at_risk_listing_and_class_analytics(client: TestClient, db_session) -> 
     at_risk = client.get("/api/insights/at-risk", headers=headers).json()
     assert [item["student_id"] for item in at_risk] == [weak]
 
+    in_class = client.get(
+        f"/api/insights/at-risk?class_id={school['class_id']}", headers=headers
+    ).json()
+    assert [item["student_id"] for item in in_class] == [weak]
+    other_class = client.get("/api/insights/at-risk?class_id=9999", headers=headers).json()
+    assert other_class == []
+
     analytics = client.get(
         f"/api/insights/classes/{school['class_id']}", headers=headers
     ).json()

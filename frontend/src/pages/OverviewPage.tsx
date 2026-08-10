@@ -18,14 +18,8 @@ export default function OverviewPage() {
     setLoading(true);
     setError(null);
     try {
-      const [classList, risks, studentList] = await Promise.all([
-        apiFetch<SchoolClass[]>("/api/classes"),
-        apiFetch<AtRiskStudent[]>("/api/insights/at-risk"),
-        apiFetch<Student[]>("/api/students"),
-      ]);
+      const classList = await apiFetch<SchoolClass[]>("/api/classes");
       setClasses(classList);
-      setAtRisk(risks);
-      setStudents(studentList);
       const firstClass = classList[0]?.id ?? null;
       setSelectedClassId((current) => current ?? firstClass);
     } catch (caught) {
@@ -41,8 +35,17 @@ export default function OverviewPage() {
 
   useEffect(() => {
     if (selectedClassId === null) return;
-    apiFetch<ClassAnalytics>(`/api/insights/classes/${selectedClassId}`)
-      .then(setAnalytics)
+    const query = `?class_id=${selectedClassId}`;
+    Promise.all([
+      apiFetch<ClassAnalytics>(`/api/insights/classes/${selectedClassId}`),
+      apiFetch<AtRiskStudent[]>(`/api/insights/at-risk${query}`),
+      apiFetch<Student[]>(`/api/students${query}`),
+    ])
+      .then(([classAnalytics, risks, studentList]) => {
+        setAnalytics(classAnalytics);
+        setAtRisk(risks);
+        setStudents(studentList);
+      })
       .catch((caught: unknown) => {
         setAnalytics(null);
         setError(caught instanceof Error ? caught.message : "Failed to load class analytics");

@@ -99,10 +99,14 @@ def insight_history(
 @router.get("/at-risk", response_model=list[AtRiskStudent])
 def at_risk(
     min_risk_score: float = 25.0,
+    class_id: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(staff_only),
 ) -> list[AtRiskStudent]:
-    return compute_at_risk_students(db, _visible_students(db, current_user), min_risk_score)
+    students = _visible_students(db, current_user)
+    if class_id is not None:
+        students = [student for student in students if student.class_id == class_id]
+    return compute_at_risk_students(db, students, min_risk_score)
 
 
 @router.get("/classes/{class_id}", response_model=ClassAnalytics)

@@ -1,7 +1,11 @@
+# Free-tier blueprint: one Docker web service backed by SQLite, so no credit card
+# is required. The filesystem is ephemeral, so the demo dataset is re-seeded on
+# every restart; switch DATABASE_URL to a Postgres instance to keep data.
 services:
   - type: web
     name: sams
     runtime: docker
+    plan: free
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
@@ -12,11 +16,4 @@ services:
       - key: SEED_DEMO_DATA
         value: "true"
       - key: DATABASE_URL
-        fromDatabase:
-          name: sams-db
-          property: connectionString
-
-databases:
-  - name: sams-db
-    databaseName: sams
-    user: sams
+        value: sqlite:////srv/data/sams.db

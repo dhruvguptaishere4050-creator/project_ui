@@ -34,3 +34,14 @@ def test_production_requires_a_real_secret_key() -> None:
     Settings(
         _env_file=None, environment="production", secret_key="a-real-random-key"
     ).validate_for_runtime()
+
+
+def test_cross_site_frontend_relaxes_the_refresh_cookie() -> None:
+    same_site = Settings(_env_file=None)
+    assert same_site.refresh_cookie_samesite == "lax"
+    assert same_site.refresh_cookie_secure is False
+
+    split = Settings(_env_file=None, cross_site_frontend=True)
+    assert split.refresh_cookie_samesite == "none"
+    # SameSite=None is only accepted by browsers alongside Secure.
+    assert split.refresh_cookie_secure is True

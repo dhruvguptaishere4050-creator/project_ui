@@ -35,8 +35,8 @@ def _token_response(user: User, response: Response) -> Token:
         create_refresh_token(str(user.id), user.role.value, user.token_version),
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         httponly=True,
-        secure=settings.is_production,
-        samesite="lax",
+        secure=settings.refresh_cookie_secure,
+        samesite=settings.refresh_cookie_samesite,
         path=REFRESH_COOKIE_PATH,
     )
     return Token(
@@ -83,7 +83,20 @@ def refresh(
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response) -> None:
+def logout(
+    response: Response,
+    sams_refresh: str | None = Cookie(default=None),
+    db: Session = Depends(get_db),
+) -> None:
+    # Bump the token version so a copy of the refresh token taken before sign-out
+    # cannot be replayed; this ends the account's other sessions too.
+    decoded = decode_token(sams_refresh, expected_type="refresh") if sams_refresh else None
+    if decoded is not None:
+        user = db.get(User, int(decoded["sub"]))
+        if user is not None and not token_is_revoked(decoded, user):
+            user.token_version += 1
+            db.add(AuditLog(user_id=user.id, action="logout"))
+            db.commit()
     response.delete_cookie(REFRESH_COOKIE, path=REFRESH_COOKIE_PATH)
 
 

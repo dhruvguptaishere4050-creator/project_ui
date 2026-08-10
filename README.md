@@ -34,7 +34,10 @@ UI never decides who may read what.
 
 **Security**
 
-- JWT access/refresh tokens, bcrypt password hashing, typed token validation.
+- Short-lived JWT access tokens held in memory; the refresh token is an HttpOnly, SameSite cookie.
+- Changing a password bumps a token version, immediately invalidating every issued token.
+- `ENVIRONMENT=production` refuses to boot without a real `SECRET_KEY`.
+- bcrypt password hashing, typed token validation.
 - Server-enforced role checks, per-record ownership checks, and login/password-change audit logs.
 - Security response headers, configurable CORS allow-list, secrets read from the environment.
 
@@ -91,8 +94,9 @@ cd frontend && npm run lint && npm run build
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/api/auth/login` | OAuth2 password login, returns access + refresh tokens |
-| POST | `/api/auth/refresh` | Exchange a refresh token |
+| POST | `/api/auth/login` | OAuth2 password login; returns an access token and sets the refresh cookie |
+| POST | `/api/auth/refresh` | Mint a new access token from the refresh cookie |
+| POST | `/api/auth/logout` | Clear the refresh cookie |
 | GET | `/api/auth/me` | Current user |
 | POST | `/api/classes`, `/api/subjects`, `/api/teachers`, `/api/students`, `/api/parents` | Admin provisioning |
 | GET | `/api/students` | Scoped student list (admin: all, teacher: own classes, parent: children, student: self) |
@@ -126,6 +130,7 @@ cd ../backend
 # backend/.env
 STATIC_DIR=../frontend/dist
 SEED_DEMO_DATA=true          # demo data only; leave false in production
+ENVIRONMENT=production       # enforces a real SECRET_KEY and Secure cookies
 SECRET_KEY=<random-32-bytes>
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
@@ -152,5 +157,5 @@ it at this repository and deploy. It provisions a managed PostgreSQL instance, g
 
 ### Railway / Fly.io
 
-Both detect the root `Dockerfile`. Set `SECRET_KEY` (and `DATABASE_URL` when using a managed
-database); `postgres://` URLs are normalised automatically.
+Both detect the root `Dockerfile`. Set `ENVIRONMENT=production`, `SECRET_KEY` (and `DATABASE_URL`
+when using a managed database); `postgres://` URLs are normalised automatically.

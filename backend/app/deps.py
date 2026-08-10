@@ -17,6 +17,11 @@ CREDENTIALS_ERROR = HTTPException(
 )
 
 
+def token_is_revoked(payload: dict[str, object], user: User) -> bool:
+    """True for tokens issued before the user's credentials last changed."""
+    return payload.get("ver") != user.token_version
+
+
 def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
@@ -25,6 +30,8 @@ def get_current_user(
         raise CREDENTIALS_ERROR
     user = db.get(User, int(payload["sub"]))
     if user is None or not user.is_active:
+        raise CREDENTIALS_ERROR
+    if token_is_revoked(payload, user):
         raise CREDENTIALS_ERROR
     return user
 

@@ -64,6 +64,9 @@ class User(Base):
     role: Mapped[Role] = mapped_column(Enum(Role), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    # Bumped whenever credentials change; tokens carrying an older value are
+    # rejected, so changing a password logs out every existing session.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     student: Mapped[Student | None] = relationship(back_populates="user", uselist=False)
     teacher: Mapped[Teacher | None] = relationship(back_populates="user", uselist=False)

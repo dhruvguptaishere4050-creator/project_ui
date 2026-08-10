@@ -18,11 +18,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def _create_token(subject: str, role: str, token_type: str, expires_delta: timedelta) -> str:
+def _create_token(
+    subject: str, role: str, token_version: int, token_type: str, expires_delta: timedelta
+) -> str:
     now = datetime.now(timezone.utc)
     payload = {
         "sub": subject,
         "role": role,
+        "ver": token_version,
         "type": token_type,
         "iat": int(now.timestamp()),
         "exp": int((now + expires_delta).timestamp()),
@@ -30,15 +33,23 @@ def _create_token(subject: str, role: str, token_type: str, expires_delta: timed
     return jwt.encode(payload, settings.secret_key, algorithm=settings.algorithm)
 
 
-def create_access_token(subject: str, role: str) -> str:
+def create_access_token(subject: str, role: str, token_version: int = 0) -> str:
     return _create_token(
-        subject, role, "access", timedelta(minutes=settings.access_token_expire_minutes)
+        subject,
+        role,
+        token_version,
+        "access",
+        timedelta(minutes=settings.access_token_expire_minutes),
     )
 
 
-def create_refresh_token(subject: str, role: str) -> str:
+def create_refresh_token(subject: str, role: str, token_version: int = 0) -> str:
     return _create_token(
-        subject, role, "refresh", timedelta(days=settings.refresh_token_expire_days)
+        subject,
+        role,
+        token_version,
+        "refresh",
+        timedelta(days=settings.refresh_token_expire_days),
     )
 
 

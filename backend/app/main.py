@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, Response
 
 from app.config import get_settings
-from app.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, apply_schema_updates, engine
 from app.routers import academics, auth, insights, people
 from app.seed import seed
 
@@ -19,7 +19,9 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    settings.validate_for_runtime()
     Base.metadata.create_all(bind=engine)
+    apply_schema_updates(engine)
     if settings.seed_demo_data:
         with SessionLocal() as db:
             seed(db)
@@ -67,6 +69,23 @@ app.include_router(people.router)
 app.include_router(academics.router)
 app.include_router(insights.router)
 
+
+def resolve_static_file(static_root: Path, full_path: str) -> Path:
+    """Maps a request path to a bundle file, falling back to the SPA shell.
+
+    Paths escaping the bundle (``../`` segments, absolute paths) never resolve to
+    a file outside it.
+    """
+    index = static_root / "index.html"
+    if not full_path:
+        return index
+    root = static_root.resolve()
+    candidate = (root / full_path).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return index
+    return candidate
+
+
 if settings.static_dir and Path(settings.static_dir).is_dir():
     static_root = Path(settings.static_dir)
 
@@ -74,7 +93,4 @@ if settings.static_dir and Path(settings.static_dir).is_dir():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     def spa(full_path: str) -> FileResponse:
-        candidate = static_root / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(static_root / "index.html")
+        return FileResponse(resolve_static_file(static_root, full_path))

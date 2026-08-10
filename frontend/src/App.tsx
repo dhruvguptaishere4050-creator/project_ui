@@ -2,6 +2,7 @@ import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import { useAuth } from "./auth/AuthContext";
+import { Loading } from "./components/common";
 import type { Role } from "./api/types";
 import AdminPeoplePage from "./pages/AdminPeoplePage";
 import LoginPage from "./pages/LoginPage";
@@ -13,8 +14,9 @@ import StudentProfilePage from "./pages/StudentProfilePage";
 const STAFF: Role[] = ["admin", "teacher"];
 
 function RequireAuth({ children, roles }: { children: ReactNode; roles?: Role[] }) {
-  const { session } = useAuth();
+  const { session, restoring } = useAuth();
   const location = useLocation();
+  if (restoring) return <Loading label="Restoring your session..." />;
   if (!session) return <Navigate to="/login" state={{ from: location }} replace />;
   if (roles && !roles.includes(session.role)) return <Navigate to="/" replace />;
   return <>{children}</>;

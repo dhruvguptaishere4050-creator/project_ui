@@ -1,6 +1,9 @@
+import logging
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+DEV_SECRET_KEY = "dev-secret-change-me"
 
 
 class Settings(BaseSettings):
@@ -9,7 +12,10 @@ class Settings(BaseSettings):
     app_name: str = "Student Academic Management System"
     database_url: str = "sqlite:///./sams.db"
 
-    secret_key: str = "dev-secret-change-me"
+    # Set to "production" on any deployment; a real SECRET_KEY is then mandatory.
+    environment: str = "development"
+
+    secret_key: str = DEV_SECRET_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 7
@@ -40,6 +46,21 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() in {"production", "prod"}
+
+    def validate_for_runtime(self) -> None:
+        """Refuses to boot a production deployment with the publicly known dev key."""
+        if self.secret_key == DEV_SECRET_KEY:
+            if self.is_production:
+                raise RuntimeError(
+                    "SECRET_KEY must be set to a random value when ENVIRONMENT=production"
+                )
+            logging.getLogger(__name__).warning(
+                "Using the built-in development SECRET_KEY; set SECRET_KEY before deploying."
+            )
 
 
 @lru_cache

@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.ai.analytics import (
@@ -80,7 +80,7 @@ def student_insight(
 @router.get("/students/{student_id}/history", response_model=list[StudentInsight])
 def insight_history(
     student_id: int,
-    limit: int = 10,
+    limit: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[StudentInsight]:
@@ -90,7 +90,7 @@ def insight_history(
         db.query(InsightReport)
         .filter(InsightReport.student_id == student_id)
         .order_by(InsightReport.generated_at.desc())
-        .limit(min(limit, 50))
+        .limit(limit)
         .all()
     )
     return [StudentInsight(**json.loads(report.payload)) for report in reports]

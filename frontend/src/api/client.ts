@@ -1,7 +1,11 @@
 import type { AuthSession } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
-const STORAGE_KEY = "sams.session";
+
+// The access token is kept in memory only. The refresh token lives in an
+// HttpOnly cookie the browser sends to /api/auth, so nothing persists a
+// credential where injected scripts can read it.
+let session: AuthSession | null = null;
 
 export class ApiError extends Error {
   status: number;
@@ -10,19 +14,6 @@ export class ApiError extends Error {
     super(message);
     this.status = status;
   }
-}
-
-export function loadSession(): AuthSession | null {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  return raw ? (JSON.parse(raw) as AuthSession) : null;
-}
-
-export function saveSession(session: AuthSession): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-}
-
-export function clearSession(): void {
-  localStorage.removeItem(STORAGE_KEY);
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -35,15 +26,23 @@ async function parseError(response: Response): Promise<string> {
   }
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const session = loadSession();
+async function send(path: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers);
   if (session) headers.set("Authorization", `Bearer ${session.access_token}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  return fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
+}
 
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let response = await send(path, init);
+  if (response.status === 401 && session) {
+    // The access token is short lived; swap it for a fresh one and retry once.
+    const renewed = await refreshSession();
+    if (!renewed) throw new ApiError("Your session expired. Please sign in again.", 401);
+    response = await send(path, init);
+  }
   if (response.status === 401) {
-    clearSession();
+    session = null;
     throw new ApiError("Your session expired. Please sign in again.", 401);
   }
   if (!response.ok) throw new ApiError(await parseError(response), response.status);
@@ -53,9 +52,26 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
 export async function login(email: string, password: string): Promise<AuthSession> {
   const body = new URLSearchParams({ username: email, password });
-  const response = await fetch(`${API_BASE}/api/auth/login`, { method: "POST", body });
+  const response = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    body,
+    credentials: "include",
+  });
   if (!response.ok) throw new ApiError(await parseError(response), response.status);
-  const session = (await response.json()) as AuthSession;
-  saveSession(session);
+  session = (await response.json()) as AuthSession;
   return session;
+}
+
+export async function refreshSession(): Promise<AuthSession | null> {
+  const response = await fetch(`${API_BASE}/api/auth/refresh`, {
+    method: "POST",
+    credentials: "include",
+  });
+  session = response.ok ? ((await response.json()) as AuthSession) : null;
+  return session;
+}
+
+export async function logout(): Promise<void> {
+  session = null;
+  await fetch(`${API_BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
 }

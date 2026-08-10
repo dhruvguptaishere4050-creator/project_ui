@@ -16,6 +16,7 @@ services:
   app:
     build: .
     environment:
+      ENVIRONMENT: production
       DATABASE_URL: postgresql+psycopg2://sams:sams@db:5432/sams
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your environment}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}

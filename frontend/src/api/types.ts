@@ -2,7 +2,6 @@ export type Role = "admin" | "teacher" | "student" | "parent";
 
 export interface AuthSession {
   access_token: string;
-  refresh_token: string;
   token_type: string;
   role: Role;
   user_id: number;
